@@ -16,7 +16,6 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => (
-  // SafeRide App
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
