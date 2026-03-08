@@ -80,7 +80,7 @@ const RideTracking = () => {
       map.remove();
       mapRef.current = null;
     };
-  }, []);
+  }, [tracking]);
 
   // Fetch tracking data
   useEffect(() => {
