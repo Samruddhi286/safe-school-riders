@@ -5,10 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createRide } from "@/services/api";
+import { useRides } from "@/contexts/RideContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 const CreateRide = () => {
   const navigate = useNavigate();
+  const { addRide } = useRides();
+  const { user } = useAuth();
   const [form, setForm] = useState({ pickupLocation: "", destination: "", date: "", time: "", seats: 1, vehicleDetails: "" });
   const [loading, setLoading] = useState(false);
 
@@ -20,6 +24,15 @@ const CreateRide = () => {
     setLoading(true);
     try {
       await createRide(form);
+      addRide({
+        driverName: user?.name || "You",
+        pickupLocation: form.pickupLocation,
+        destination: form.destination,
+        date: form.date,
+        time: form.time,
+        availableSeats: form.seats,
+        vehicleDetails: form.vehicleDetails,
+      });
       toast.success("Ride created successfully!");
       navigate("/dashboard");
     } catch {
