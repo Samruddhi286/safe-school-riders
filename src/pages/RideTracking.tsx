@@ -5,7 +5,6 @@ import { ArrowLeft, Clock, User, CheckCircle, Loader2, CalendarCheck, Navigation
 import { Button } from "@/components/ui/button";
 import { trackRide, type TrackingInfo } from "@/services/api";
 import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 
 // Simulated route points (pickup to school)
 const routePoints: [number, number][] = [
@@ -41,13 +40,17 @@ const RideTracking = () => {
   const traveledLineRef = useRef<L.Polyline | null>(null);
 
   // Initialize map
+  // Initialize map - depends on tracking so container exists in DOM
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
-    const map = L.map(mapContainerRef.current).setView(routePoints[0], 14);
+    const map = L.map(mapContainerRef.current, { zoomControl: true }).setView(routePoints[0], 14);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(map);
+
+    // Ensure map renders correctly after DOM is ready
+    setTimeout(() => map.invalidateSize(), 100);
 
     // Remaining route (dashed)
     L.polyline(routePoints, { color: "#3b82f6", weight: 3, opacity: 0.3, dashArray: "8 8" }).addTo(map);
@@ -77,7 +80,7 @@ const RideTracking = () => {
       map.remove();
       mapRef.current = null;
     };
-  }, []);
+  }, [tracking]);
 
   // Fetch tracking data
   useEffect(() => {
