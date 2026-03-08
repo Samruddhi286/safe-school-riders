@@ -4,33 +4,8 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Clock, User, CheckCircle, Loader2, CalendarCheck, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trackRide, type TrackingInfo } from "@/services/api";
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-
-// Fix default marker icon
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
-  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-});
-
-const carIcon = new L.Icon({
-  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-  shadowSize: [41, 41],
-});
-
-const schoolIcon = new L.DivIcon({
-  html: `<div style="background:hsl(142,71%,45%);width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="m4 6 8-4 8 4"/><path d="m18 10 4 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8l4-2"/><path d="M14 22v-4a2 2 0 0 0-4 0v4"/><path d="M18 5v17"/><path d="M6 5v17"/></svg></div>`,
-  iconSize: [28, 28],
-  iconAnchor: [14, 14],
-  className: "",
-});
 
 // Simulated route points (pickup to school)
 const routePoints: [number, number][] = [
@@ -54,31 +29,65 @@ const statusConfig = {
   completed: { label: "Completed", icon: CheckCircle, color: "bg-emerald-500/20 text-emerald-700" },
 };
 
-function MapUpdater({ center }: { center: [number, number] }) {
-  const map = useMap();
-  useEffect(() => {
-    map.panTo(center, { animate: true, duration: 0.5 });
-  }, [center, map]);
-  return null;
-}
-
 const RideTracking = () => {
   const [tracking, setTracking] = useState<TrackingInfo | null>(null);
   const [routeIndex, setRouteIndex] = useState(0);
   const [rideStatus, setRideStatus] = useState<"scheduled" | "in_progress" | "completed">("scheduled");
   const [eta, setEta] = useState("Calculating...");
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const driverMarkerRef = useRef<L.Marker | null>(null);
+  const traveledLineRef = useRef<L.Polyline | null>(null);
 
+  // Initialize map
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return;
+
+    const map = L.map(mapContainerRef.current).setView(routePoints[0], 14);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(map);
+
+    // Remaining route (dashed)
+    L.polyline(routePoints, { color: "#3b82f6", weight: 3, opacity: 0.3, dashArray: "8 8" }).addTo(map);
+
+    // School marker
+    const schoolIcon = L.divIcon({
+      html: `<div style="background:#22c55e;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="m4 6 8-4 8 4"/><path d="m18 10 4 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8l4-2"/><path d="M14 22v-4a2 2 0 0 0-4 0v4"/><path d="M18 5v17"/><path d="M6 5v17"/></svg>
+      </div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+      className: "",
+    });
+    L.marker(schoolLocation, { icon: schoolIcon }).addTo(map).bindPopup("School - Destination");
+
+    // Driver marker
+    const driverMarker = L.marker(routePoints[0]).addTo(map).bindPopup("Driver - On the way");
+    driverMarkerRef.current = driverMarker;
+
+    // Traveled line
+    const traveledLine = L.polyline([routePoints[0]], { color: "#3b82f6", weight: 4, opacity: 0.8 }).addTo(map);
+    traveledLineRef.current = traveledLine;
+
+    mapRef.current = map;
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  // Fetch tracking data
   useEffect(() => {
     trackRide().then((data) => {
       setTracking(data);
-      // Start simulation after a brief delay
-      setTimeout(() => {
-        setRideStatus("in_progress");
-      }, 1500);
+      setTimeout(() => setRideStatus("in_progress"), 1500);
     });
   }, []);
 
+  // Simulate movement
   useEffect(() => {
     if (rideStatus === "in_progress") {
       intervalRef.current = setInterval(() => {
@@ -98,20 +107,19 @@ const RideTracking = () => {
     };
   }, [rideStatus]);
 
+  // Update map markers on movement
   useEffect(() => {
+    const pos = routePoints[routeIndex];
+    driverMarkerRef.current?.setLatLng(pos);
+    traveledLineRef.current?.setLatLngs(routePoints.slice(0, routeIndex + 1));
+    mapRef.current?.panTo(pos, { animate: true, duration: 0.5 });
+
     const remaining = routePoints.length - 1 - routeIndex;
-    if (rideStatus === "completed") {
-      setEta("Arrived!");
-    } else if (rideStatus === "scheduled") {
-      setEta("Waiting to start...");
-    } else {
-      setEta(`${remaining * 2} min`);
-    }
+    if (rideStatus === "completed") setEta("Arrived!");
+    else if (rideStatus === "scheduled") setEta("Waiting to start...");
+    else setEta(`${remaining * 2} min`);
   }, [routeIndex, rideStatus]);
 
-  const currentPos = routePoints[routeIndex];
-  const traveledRoute = routePoints.slice(0, routeIndex + 1);
-  const remainingRoute = routePoints.slice(routeIndex);
   const statusInfo = statusConfig[rideStatus];
 
   return (
@@ -128,7 +136,6 @@ const RideTracking = () => {
 
         {tracking ? (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-            {/* Status & Info */}
             <div className="bg-card rounded-lg p-6 card-shadow space-y-4">
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium ${statusInfo.color}`}>
@@ -162,39 +169,7 @@ const RideTracking = () => {
 
             {/* Live Map */}
             <div className="bg-card rounded-lg card-shadow overflow-hidden">
-              <div className="h-[400px]">
-                <MapContainer
-                  center={currentPos}
-                  zoom={14}
-                  scrollWheelZoom={true}
-                  style={{ height: "100%", width: "100%" }}
-                >
-                  <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  />
-                  <MapUpdater center={currentPos} />
-
-                  {/* Traveled route */}
-                  {traveledRoute.length > 1 && (
-                    <Polyline positions={traveledRoute} color="hsl(217, 91%, 60%)" weight={4} opacity={0.8} />
-                  )}
-                  {/* Remaining route */}
-                  {remainingRoute.length > 1 && (
-                    <Polyline positions={remainingRoute} color="hsl(217, 91%, 60%)" weight={3} opacity={0.3} dashArray="8 8" />
-                  )}
-
-                  {/* Driver marker */}
-                  <Marker position={currentPos} icon={carIcon}>
-                    <Popup>{tracking.driverName} - {rideStatus === "completed" ? "Arrived!" : "On the way"}</Popup>
-                  </Marker>
-
-                  {/* School marker */}
-                  <Marker position={schoolLocation} icon={schoolIcon}>
-                    <Popup>School - Destination</Popup>
-                  </Marker>
-                </MapContainer>
-              </div>
+              <div ref={mapContainerRef} className="h-[400px] w-full" />
             </div>
 
             {/* Status timeline */}
