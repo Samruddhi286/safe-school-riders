@@ -5,7 +5,6 @@ import { ArrowLeft, Clock, User, CheckCircle, Loader2, CalendarCheck, Navigation
 import { Button } from "@/components/ui/button";
 import { trackRide, type TrackingInfo } from "@/services/api";
 import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 
 // Simulated route points (pickup to school)
 const routePoints: [number, number][] = [
