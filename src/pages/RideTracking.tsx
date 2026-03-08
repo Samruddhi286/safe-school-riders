@@ -44,10 +44,13 @@ const RideTracking = () => {
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
-    const map = L.map(mapContainerRef.current).setView(routePoints[0], 14);
+    const map = L.map(mapContainerRef.current, { zoomControl: true }).setView(routePoints[0], 14);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(map);
+
+    // Ensure map renders correctly after DOM is ready
+    setTimeout(() => map.invalidateSize(), 100);
 
     // Remaining route (dashed)
     L.polyline(routePoints, { color: "#3b82f6", weight: 3, opacity: 0.3, dashArray: "8 8" }).addTo(map);
