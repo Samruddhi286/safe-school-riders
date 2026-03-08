@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { loginUser } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -18,12 +17,11 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await loginUser({ email, password });
-      login(res.user, res.token);
+      await login(email, password);
       toast.success("Welcome back!");
       navigate("/dashboard");
-    } catch {
-      toast.error("Login failed.");
+    } catch (err: any) {
+      toast.error(err.message || "Login failed.");
     } finally {
       setLoading(false);
     }

@@ -5,27 +5,24 @@ import { Search as SearchIcon, MapPin, Clock, Users, ArrowLeft } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { searchRides, bookRide, type Ride } from "@/services/api";
-import { useRides } from "@/contexts/RideContext";
+import { useRides, type Ride } from "@/contexts/RideContext";
 import { toast } from "sonner";
 
 const SearchRide = () => {
   const [pickupLocation, setPickupLocation] = useState("");
   const [schoolName, setSchoolName] = useState("");
   const [date, setDate] = useState("");
-  const [rides, setRides] = useState<Ride[]>([]);
+  const [results, setResults] = useState<Ride[]>([]);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { customRides, addBooking, bookings } = useRides();
+  const { addBooking, bookings, searchRides } = useRides();
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const apiResults = await searchRides({ pickupLocation, schoolName, date });
-      // Merge API results with user-created rides
-      const allRides = [...apiResults, ...customRides];
-      setRides(allRides);
+      const rides = await searchRides(pickupLocation, schoolName, date);
+      setResults(rides);
       setSearched(true);
     } catch {
       toast.error("Search failed.");
@@ -41,8 +38,7 @@ const SearchRide = () => {
       return;
     }
     try {
-      await bookRide(ride.id);
-      addBooking(ride);
+      await addBooking(ride);
       toast.success("Ride booked successfully! Check My Bookings.");
     } catch {
       toast.error("Booking failed.");
@@ -82,8 +78,8 @@ const SearchRide = () => {
 
         {searched && (
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">{rides.length} ride(s) found</h2>
-            {rides.map((ride, i) => {
+            <h2 className="text-xl font-semibold text-foreground">{results.length} ride(s) found</h2>
+            {results.map((ride, i) => {
               const isBooked = bookings.some((b) => b.ride.id === ride.id && b.status !== "cancelled");
               return (
                 <motion.div
