@@ -40,6 +40,7 @@ const RideTracking = () => {
   const traveledLineRef = useRef<L.Polyline | null>(null);
 
   // Initialize map
+  // Initialize map - depends on tracking so container exists in DOM
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
