@@ -3,11 +3,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { registerUser } from "@/services/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 const Signup = () => {
   const navigate = useNavigate();
+  const { signup } = useAuth();
   const [form, setForm] = useState({ parentName: "", email: "", phone: "", password: "", childName: "", schoolName: "" });
   const [loading, setLoading] = useState(false);
 
@@ -18,11 +19,16 @@ const Signup = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await registerUser(form);
-      toast.success("Registration successful! Please login.");
+      await signup(form.email, form.password, {
+        parentName: form.parentName,
+        phone: form.phone,
+        childName: form.childName,
+        schoolName: form.schoolName,
+      });
+      toast.success("Registration successful! Please check your email to confirm, or login.");
       navigate("/login");
-    } catch {
-      toast.error("Registration failed.");
+    } catch (err: any) {
+      toast.error(err.message || "Registration failed.");
     } finally {
       setLoading(false);
     }

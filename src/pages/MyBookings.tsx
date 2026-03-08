@@ -13,14 +13,22 @@ const statusConfig: Record<Booking["status"], { label: string; icon: typeof Chec
 };
 
 const MyBookings = () => {
-  const { bookings, cancelBooking } = useRides();
+  const { bookings, cancelBooking, loadingBookings } = useRides();
   const activeBookings = bookings.filter((b) => b.status !== "cancelled");
   const cancelledBookings = bookings.filter((b) => b.status === "cancelled");
 
-  const handleCancel = (id: string) => {
-    cancelBooking(id);
+  const handleCancel = async (id: string) => {
+    await cancelBooking(id);
     toast.success("Booking cancelled.");
   };
+
+  if (loadingBookings) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

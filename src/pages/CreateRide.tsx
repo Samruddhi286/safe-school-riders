@@ -4,7 +4,6 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createRide } from "@/services/api";
 import { useRides } from "@/contexts/RideContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -23,8 +22,7 @@ const CreateRide = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await createRide(form);
-      addRide({
+      await addRide({
         driverName: user?.name || "You",
         pickupLocation: form.pickupLocation,
         destination: form.destination,
