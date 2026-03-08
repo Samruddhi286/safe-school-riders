@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 const cards = [
   { title: "Search Ride", desc: "Find available rides near you", icon: Search, to: "/search-ride", color: "hero-gradient" },
   { title: "Create Ride", desc: "Offer a ride to other parents", icon: PlusCircle, to: "/create-ride", color: "hero-gradient" },
-  { title: "My Bookings", desc: "View your booked rides", icon: BookOpen, to: "/dashboard", color: "hero-gradient" },
+  { title: "My Bookings", desc: "View your booked rides", icon: BookOpen, to: "/my-bookings", color: "hero-gradient" },
   { title: "Ride Tracking", desc: "Track your child's ride live", icon: MapPin, to: "/ride-tracking", color: "hero-gradient" },
 ];
 
